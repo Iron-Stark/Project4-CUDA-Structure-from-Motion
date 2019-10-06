@@ -36,6 +36,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     sfm
     cudaSift
     ${CORELIBS}
+    cusolver
     cublas
     curand
     ${OpenCV_LIBS}
