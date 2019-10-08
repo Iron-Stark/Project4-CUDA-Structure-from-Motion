@@ -4,7 +4,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
+#include<sfm/sfm.h>
 using namespace std;
 using namespace cv;
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	// Extract Sift features from images
 	SiftData siftData1, siftData2;
 	float initBlur = 1.0f;
-	float thresh = (imgSet ? 4.5f : 3.0f);
+	float thresh = 2.0f;
 	InitSiftData(siftData1, 32768, true, true);
 	InitSiftData(siftData2, 32768, true, true);
 
@@ -104,15 +104,17 @@ int main(int argc, char **argv)
 	int numMatches;
 	FindHomography(siftData1, homography, &numMatches, 10000, 0.00f, 0.80f, 5.0);
 	int numFit = ImproveHomography(siftData1, homography, 5, 0.00f, 0.80f, 3.0);
-
 	std::cout << "Number of original features: " << siftData1.numPts << " " << siftData2.numPts << std::endl;
-	std::cout << "Number of matching features: " << numFit << " " << numMatches << " " << 100.0f*numFit / std::min(siftData1.numPts, siftData2.numPts) << "% " << initBlur << " " << thresh << std::endl;
+	//std::cout << "Number of matching features: " << numFit << " " << numMatches << " " << 100.0f*numFit / std::min(siftData1.numPts, siftData2.numPts) << "% " << initBlur << " " << thresh << std::endl;
 	//}
 
   // Print out and store summary data
 	PrintMatchData(siftData1, siftData2, img1);
 	//cv::imwrite("../img/limg_pts.pgm", limg);
-	showCorrespondence(siftData1, siftData2, limg, rimg);
+	float intrinsic[3 * 3] = {2360, 0, w/2, 0, 2360, h/2, 0, 0, 1};
+	SFM::structure_from_motion sfm(2,siftData1.numPts);
+	sfm.struct_from_motion(siftData1, intrinsic, 3, 2);
+	//showCorrespondence(siftData1, siftData2, limg, rimg);
 
 	//MatchAll(siftData1, siftData2, homography);
 
@@ -246,7 +248,6 @@ int ImproveHomography(SiftData &data, float *homography, int numLoops, float min
 	for (int loop = 0; loop < numLoops; loop++) {
 		M = cv::Scalar(0.0);
 		X = cv::Scalar(0.0);
-		// RANSAC Kernel to be called here.
 		for (int i = 0; i < numPts; i++) {
 			SiftPoint &pt = mpts[i];
 			if (pt.score<minScore || pt.ambiguity>maxAmbiguity)
